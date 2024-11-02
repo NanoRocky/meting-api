@@ -23,6 +23,10 @@
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;song 单曲<br />
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;playlist 歌单<br /><br />
     id: 类型ID（封面ID/单曲ID/歌单ID）<br />
+    <br /><br />
+    yrc: 网易云音乐逐字歌词解析开关，开启后优先解析逐字歌词。<br />
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False 禁用(默认)<br />
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True 启用<br />
     <br />
     GitHub：<a href="https://github.com/injahow/meting-api" target="_blank">meting-api</a>，此API基于 <a href="https://github.com/metowolf/Meting" target="_blank">Meting</a> 构建。<br /><br />
     例如：<a href="<?php echo API_URI ?>?type=url&id=416892104" target="_blank"><?php echo API_URI ?>?type=url&id=416892104</a><br />

@@ -3,7 +3,7 @@
  * Meting music framework
  * https://i-meto.com
  * https://github.com/metowolf/Meting
- * Version 1.5.10.
+ * Version 1.5.11.
  *
  * Copyright 2019, METO Sheel <i@i-meto.com>
  * Released under the MIT license
@@ -13,7 +13,7 @@ namespace Metowolf;
 
 class Meting
 {
-    const VERSION = '1.5.10';
+    const VERSION = '1.5.11';
 
     public $raw;
     public $data;
@@ -24,7 +24,14 @@ class Meting
     public $server;
     public $proxy = null;
     public $format = false;
+    public $yrc = false;
     public $header;
+    private $temp;
+
+    public function yrc($value = false) {
+        $this->yrc = $value;
+        return $this;
+    }
 
     public function __construct($value = 'netease')
     {
@@ -160,11 +167,11 @@ class Meting
             case 'netease':
             $api = array(
                 'method' => 'POST',
-                'url'    => 'http://music.163.com/api/cloudsearch/pc',
+                'url'    => 'https://music.163.com/api/cloudsearch/pc',
                 'body'   => array(
                     's'      => $keyword,
                     'type'   => isset($option['type']) ? $option['type'] : 1,
-                    'limit'  => isset($option['limit']) ? $option['limit'] : 30,
+                    'limit'  => isset($option['limit']) ? $option['limit'] : 100000,
                     'total'  => 'true',
                     'offset' => isset($option['page']) && isset($option['limit']) ? ($option['page'] - 1) * $option['limit'] : 0,
                 ),
@@ -268,7 +275,7 @@ class Meting
             case 'netease':
             $api = array(
                 'method' => 'POST',
-                'url'    => 'http://music.163.com/api/v3/song/detail/',
+                'url'    => 'https://music.163.com/api/v3/song/detail/',
                 'body'   => array(
                     'c' => '[{"id":'.$id.',"v":0}]',
                 ),
@@ -352,12 +359,12 @@ class Meting
             case 'netease':
             $api = array(
                 'method' => 'POST',
-                'url'    => 'http://music.163.com/api/v1/album/'.$id,
+                'url'    => 'https://music.163.com/api/v1/album/'.$id,
                 'body'   => array(
                     'total'         => 'true',
                     'offset'        => '0',
                     'id'            => $id,
-                    'limit'         => '1000',
+                    'limit'         => '100000',
                     'ext'           => 'true',
                     'private_cloud' => 'true',
                 ),
@@ -424,9 +431,11 @@ class Meting
 			case 'kuwo':
 			$api = array(
 				'method' => 'GET',
-				'url'    => 'http://www.kuwo.cn/api/www/playlist/playListInfo',
+				'url'    => 'http://www.kuwo.cn/api/www/album/albumInfo',
 				'body'   => array(
-					'pid'         => $id,
+					'albumId'     => $id,
+                    'pn'          => 1,
+                    'rn'          => 1000,
 					'httpsStatus' => 1,
 				),
 				'format' => 'data.musicList',
@@ -443,7 +452,7 @@ class Meting
             case 'netease':
             $api = array(
                 'method' => 'POST',
-                'url'    => 'http://music.163.com/api/v1/artist/'.$id,
+                'url'    => 'https://music.163.com/api/v1/artist/'.$id,
                 'body'   => array(
                     'ext'           => 'true',
                     'private_cloud' => 'true',
@@ -526,6 +535,8 @@ class Meting
 				'url'    => 'http://www.kuwo.cn/api/www/artist/artistMusic',
 				'body'   => array(
 					'artistid'    => $id,
+                    'pn'          => 1,
+                    'rn'          => $limit,
 					'httpsStatus' => 1,
 				),
 				'format' => 'data.list',
@@ -540,18 +551,72 @@ class Meting
     {
         switch ($this->server) {
             case 'netease':
-            $api = array(
-                'method' => 'POST',
-                'url'    => 'http://music.163.com/api/v6/playlist/detail',
-                'body'   => array(
-                    's'  => '0',
-                    'id' => $id,
-                    'n'  => '1000',
-                    't'  => '0',
-                ),
-                'encode' => 'netease_AESCBC',
-                'format' => 'playlist.tracks',
-            );
+            $api = [
+                "method" => "POST",
+                "url" => "https://music.163.com/api/v6/playlist/detail",
+                "body" => [
+                    "id" => $id,
+                    "offset" => "0",
+                    "total" => "True",
+                    "limit" => "100000",
+                    "n" => "100000",
+                ],
+                "encode" => "netease_AESCBC",
+            ];
+            $playlistData = json_decode($this->exec($api), true);
+            $trackIds = $playlistData["playlist"]["trackIds"];
+            $allTracks = [];
+            $idBatches = array_chunk(array_column($trackIds, "id"), 500);
+
+            foreach ($idBatches as $batch) {
+                // Convert the batch into the proper format
+                $songIds = array_map(function ($id) {
+                    return ["id" => $id, "v" => 0]; // Using 'v' => 0 as per your suggestion
+                }, $batch);
+
+                // Fetch the song details for each batch
+                $songApi = [
+                    "method" => "POST",
+                    "url" => "https://music.163.com/api/v3/song/detail/",
+                    "body" => [
+                        "c" => json_encode($songIds),
+                    ],
+                    "encode" => "netease_AESCBC",
+                ];
+                $songData = $this->exec($songApi);
+                // Merge songs data into allTracks
+                $allTracks = array_merge(
+                    $allTracks,
+                    json_decode($songData, true)["songs"]
+                );
+            }
+            $tmp = array_map(function ($data) {
+                $result = [
+                    "id" => $data["id"],
+                    "name" => $data["name"],
+                    "artist" => [],
+                    "album" => $data["al"]["name"],
+                    "pic_id" => isset($data["al"]["pic_str"])
+                        ? $data["al"]["pic_str"]
+                        : $data["al"]["pic"],
+                    "url_id" => $data["id"],
+                    "lyric_id" => $data["id"],
+                    "source" => "netease",
+                ];
+                if (isset($data["al"]["picUrl"])) {
+                    preg_match(
+                        "/\/(\d+)\./",
+                        $data["al"]["picUrl"],
+                        $match
+                    );
+                    $result["pic_id"] = $match[1];
+                }
+                foreach ($data["ar"] as $vo) {
+                    $result["artist"][] = $vo["name"];
+                }
+                return $result;
+            }, $allTracks);
+            return json_encode($tmp);
             break;
             case 'tencent':
             $api = array(
@@ -620,6 +685,8 @@ class Meting
 				'url'    => 'http://www.kuwo.cn/api/www/playlist/playListInfo',
 				'body'   => array(
 					'pid'         => $id,
+                    'pn'          => 1,
+                    'rn'          => 1000,
 					'httpsStatus' => 1,
 				),
 				'format' => 'data.musicList',
@@ -636,10 +703,10 @@ class Meting
             case 'netease':
             $api = array(
                 'method' => 'POST',
-                'url'    => 'http://music.163.com/api/song/enhance/player/url',
+                'url'    => 'https://music.163.com/api/song/enhance/player/url',
                 'body'   => array(
                     'ids' => array($id),
-                    'br'  => $br * 1000,
+                    'br'  => $br * 999999,
                 ),
                 'encode' => 'netease_AESCBC',
                 'decode' => 'netease_url',
@@ -740,82 +807,110 @@ class Meting
             case 'netease':
             $api = array(
                 'method' => 'POST',
-                'url'    => 'http://music.163.com/api/song/lyric',
+                'url'    => 'https://music.163.com/api/song/lyric',
                 'body'   => array(
-                    'id' => $id,
-                    'os' => 'linux',
-                    'lv' => -1,
-                    'kv' => -1,
-                    'tv' => -1,
+                    'id'        => $id,
+                    'os'        => 'pc',
+                    'lv'        => -1,
+                    'kv'        => -1,
+                    'tv'        => -1,
+                    'rv'        => -1,
+                    'yv'        => 1,
+                    'showRole'  => 'False',
+                    'cp'        => 'False',
+                    'e_r'       => 'False',
                 ),
                 'encode' => 'netease_AESCBC',
-                'decode' => 'netease_lyric',
             );
+            // 发送请求，获取结果
+            $result = $this->exec($api);
+            $tmp = json_decode($result, true);
+            // 手动处理返回结果
+            if (isset($tmp['yrc'])) {
+                // 如果存在 yrc 字段，进一步判断 yrc 参数的值
+                if ($this->yrc) {
+                    // yrc 参数为 true，手动处理 netease_lyric_yrc 解析
+                    $decoded_result = $this->netease_lyric_yrc($result);
+                } else {
+                    // yrc 参数为 false，手动处理普通 netease_lyric 解析
+                    $decoded_result = $this->netease_lyric($result);
+                }
+            } else {
+                // 不存在 yrc 字段，直接执行普通 netease_lyric 解析
+                $decoded_result = $this->netease_lyric($result);
+            }
+            // 返回最终处理后的结果
+            return $decoded_result;
             break;
+
             case 'tencent':
-            $api = array(
-                'method' => 'GET',
-                'url'    => 'https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg',
-                'body'   => array(
-                    'songmid' => $id,
-                    'g_tk'    => '5381',
-                ),
-                'decode' => 'tencent_lyric',
-            );
-            break;
-            case 'xiami':
-            $api = array(
-                'method' => 'GET',
-                'url'    => 'https://acs.m.xiami.com/h5/mtop.alimusic.music.lyricservice.getsonglyrics/1.0/',
-                'body'   => array(
-                    'data' => array(
-                        'songId' => $id,
+                $api = array(
+                    'method' => 'GET',
+                    'url'    => 'https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg',
+                    'body'   => array(
+                        'songmid' => $id,
+                        'g_tk'    => '5381',
                     ),
-                    'r' => 'mtop.alimusic.music.lyricservice.getsonglyrics',
-                ),
-                'encode' => 'xiami_sign',
-                'decode' => 'xiami_lyric',
-            );
-            break;
+                    'decode' => 'tencent_lyric',
+                );
+                break;
+
+            case 'xiami':
+                $api = array(
+                    'method' => 'GET',
+                    'url'    => 'https://acs.m.xiami.com/h5/mtop.alimusic.music.lyricservice.getsonglyrics/1.0/',
+                    'body'   => array(
+                        'data' => array(
+                            'songId' => $id,
+                        ),
+                        'r' => 'mtop.alimusic.music.lyricservice.getsonglyrics',
+                    ),
+                    'encode' => 'xiami_sign',
+                    'decode' => 'xiami_lyric',
+                );
+                break;
+
             case 'kugou':
-            $api = array(
-                'method' => 'GET',
-                'url'    => 'http://krcs.kugou.com/search',
-                'body'   => array(
-                    'keyword'  => '%20-%20',
-                    'ver'      => 1,
-                    'hash'     => $id,
-                    'client'   => 'mobi',
-                    'man'      => 'yes',
-                ),
-                'decode' => 'kugou_lyric',
-            );
-            break;
+                $api = array(
+                    'method' => 'GET',
+                    'url'    => 'http://krcs.kugou.com/search',
+                    'body'   => array(
+                        'keyword'  => '%20-%20',
+                        'ver'      => 1,
+                        'hash'     => $id,
+                        'client'   => 'mobi',
+                        'man'      => 'yes',
+                    ),
+                    'decode' => 'kugou_lyric',
+                );
+                break;
+
             case 'baidu':
-            $api = array(
-                'method' => 'GET',
-                'url'    => 'http://musicapi.taihe.com/v1/restserver/ting',
-                'body'   => array(
-                    'from'     => 'qianqianmini',
-                    'method'   => 'baidu.ting.song.lry',
-                    'songid'   => $id,
-                    'platform' => 'darwin',
-                    'version'  => '1.0.0',
-                ),
-                'decode' => 'baidu_lyric',
-            );
-            break;
-			case 'kuwo':
-			$api = array(
-				'method' => 'GET',
-				'url'    => 'http://m.kuwo.cn/newh5/singles/songinfoandlrc',
-				'body'   => array(
-					'musicId'     => $id,
-					'httpsStatus' => 1,
-				),
-				'decode' => 'kuwo_lyric',
-			);
-			break;
+                $api = array(
+                    'method' => 'GET',
+                    'url'    => 'http://musicapi.taihe.com/v1/restserver/ting',
+                    'body'   => array(
+                        'from'     => 'qianqianmini',
+                        'method'   => 'baidu.ting.song.lry',
+                        'songid'   => $id,
+                        'platform' => 'darwin',
+                        'version'  => '1.0.0',
+                    ),
+                    'decode' => 'baidu_lyric',
+                );
+                break;
+
+            case 'kuwo':
+                $api = array(
+                    'method' => 'GET',
+                    'url'    => 'http://m.kuwo.cn/newh5/singles/songinfoandlrc',
+                    'body'   => array(
+                        'musicId'     => $id,
+                        'httpsStatus' => 1,
+                    ),
+                    'decode' => 'kuwo_lyric',
+                );
+                break;
         }
 
         return $this->exec($api);
@@ -825,7 +920,7 @@ class Meting
     {
         switch ($this->server) {
             case 'netease':
-            $url = 'https://p3.music.126.net/'.$this->netease_encryptId($id).'/'.$id.'.jpg?param='.$size.'y'.$size;
+            $url = 'https://p3.music.126.net/'.$this->netease_encryptId($id).'/'.$id.'.jpg?param=';
             break;
             case 'tencent':
             $url = 'https://y.gtimg.cn/music/photo_new/T002R'.$size.'x'.$size.'M000'.$id.'.jpg?max_age=2592000';
@@ -995,7 +1090,7 @@ class Meting
         }
 
         if (extension_loaded('bcmath')) {
-            $skey = strrev(utf8_encode($skey));
+            $skey = strrev(mb_convert_encoding($skey, 'UTF-8', 'ISO-8859-1'));
             $skey = $this->bchexdec($this->str2hex($skey));
             $skey = bcpowmod($skey, $pubkey, $modulus);
             $skey = $this->bcdechex($skey);
@@ -1088,7 +1183,7 @@ class Meting
             $url = array(
                 'url'  => $data['data'][0]['url'],
                 'size' => $data['data'][0]['size'],
-                'br'   => $data['data'][0]['br'] / 1000,
+                'br'   => $data['data'][0]['br'] / 999999,
             );
         } else {
             $url = array(
@@ -1300,9 +1395,28 @@ class Meting
         return json_encode($url);
     }
 
+    private function netease_lyric_yrc($result)
+    {
+        // 检查 $result 是否需要解码
+        if (is_string($result)) {
+            $result = json_decode($result, true);
+        }
+
+        $data = array(
+            'lyric'  => isset($result['yrc']['lyric']) ? $result['yrc']['lyric'] : '',
+            'tlyric' => isset($result['none']['lyric']) ? $result['none']['lyric'] : '',
+        );
+
+        return json_encode($data, JSON_UNESCAPED_UNICODE);
+    }
+
     private function netease_lyric($result)
     {
-        $result = json_decode($result, true);
+        // 检查 $result 是否需要解码
+        if (is_string($result)) {
+            $result = json_decode($result, true);
+        }
+
         $data = array(
             'lyric'  => isset($result['lrc']['lyric']) ? $result['lrc']['lyric'] : '',
             'tlyric' => isset($result['tlyric']['lyric']) ? $result['tlyric']['lyric'] : '',
@@ -1521,7 +1635,7 @@ class Meting
         $result = array(
             'id'       => $data['rid'],
             'name'     => $data['name'],
-            'artist'   => explode(',', $data['artist']),
+            'artist'   => explode('&', $data['artist']),
             'album'    => $data['album'],
             'pic_id'   => $data['rid'],
             'url_id'   => $data['rid'],
