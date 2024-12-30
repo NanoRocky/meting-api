@@ -44,7 +44,7 @@
     };
 
     const initPlayer = async () => {
-        const playlist = await getPlayerList('netease', 'playlist', '3035221869');
+        const playlist = await getPlayerList('netease', 'playlist', '2619366284');
 
         const ap = new APlayer({
             container: document.getElementById('aplayer'),
