@@ -17,10 +17,10 @@ if (!isset($_GET['type']) || !isset($_GET['id'])) {
     exit;
 }
 
-$server = isset($_GET['server']) ? $_GET['server'] : 'netease';
-$type = $_GET['type'];
-$id = $_GET['id'];
-$yrc = isset($_GET['yrc']) ? $_GET['yrc'] : 'false';
+$server = filter_input(INPUT_GET, 'server', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'netease';
+$type = filter_input(INPUT_GET, 'type', FILTER_SANITIZE_SPECIAL_CHARS);
+$id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
+$yrc = filter_input(INPUT_GET, 'yrc', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'false';
 
 
 if (AUTH) {
@@ -34,7 +34,7 @@ if (AUTH) {
 }
 
 // 数据格式
-if (in_array($type, ['song', 'playlist'])) {
+if (in_array($type, ['song', 'playlist', 'search'])) {
     header('content-type: application/json; charset=utf-8;');
 } else if (in_array($type, ['name', 'lrc', 'artist'])) {
     header('content-type: text/plain; charset=utf-8;');
@@ -108,6 +108,48 @@ if ($type == 'playlist') {
     }
 
     echo $playlist;
+} else if ($type == 'search') {
+    if (!isset($_GET['keyword'])) {
+        echo '{"error":"missing keyword"}';
+        exit;
+    }
+
+    $keyword = filter_input(INPUT_GET, 'keyword', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'false';
+    $option = array(
+        'page' => isset($_GET['page']) ? $_GET['page'] : 1,
+        'limit' => isset($_GET['limit']) ? $_GET['limit'] : 50,
+    );
+
+    $data = $api->search($keyword, $option);
+    $data_array = json_decode($data, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        echo '{"error":"invalid JSON response"}';
+        exit;
+    }
+
+    $search = array();
+    foreach ($data_array as $song) {
+        $lrc_url = API_URI . '?server=' . $song['source'] . '&type=lrc&id=' . $song['lyric_id'] . (AUTH ? '&auth=' . auth($song['source'] . 'lrc' . $song['lyric_id']) : '');
+        if ($yrc == 'true') {
+            $lrc_url .= '&yrc=true';
+        }
+
+        $search[] = array(
+            'name'   => $song['name'],
+            'artist' => implode('/', $song['artist']),
+            'album'  => $song['album'],
+            'url'    => API_URI . '?server=' . $song['source'] . '&type=url&id=' . $song['url_id'] . (AUTH ? '&auth=' . auth($song['source'] . 'url' . $song['url_id']) : ''),
+            'pic'    => API_URI . '?server=' . $song['source'] . '&type=pic&id=' . $song['pic_id'] . (AUTH ? '&auth=' . auth($song['source'] . 'pic' . $song['pic_id']) : ''),
+            'lrc'    => $lrc_url,
+            'source' => $song['source']
+        );
+    }
+
+    $search = json_encode($search, JSON_UNESCAPED_UNICODE);
+    header('Content-Type: application/json; charset=utf-8');
+    echo $search;
+    exit;
 } else {
     $need_song = !in_array($type, ['url', 'pic', 'lrc']);
     if ($need_song && !in_array($type, ['name', 'artist', 'song'])) {
