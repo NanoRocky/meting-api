@@ -219,7 +219,7 @@ class Meting
             case 'kugou':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://mobilecdn.kugou.com/api/v3/search/song',
+                    'url'    => 'https://mobilecdn.kugou.com/api/v3/search/song',
                     'body'   => array(
                         'api_ver'   => 1,
                         'area_code' => 1,
@@ -239,7 +239,7 @@ class Meting
             case 'baidu':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://musicapi.taihe.com/v1/restserver/ting',
+                    'url'    => 'https://musicapi.taihe.com/v1/restserver/ting',
                     'body'   => array(
                         'from'      => 'qianqianmini',
                         'method'    => 'baidu.ting.search.merge',
@@ -256,7 +256,7 @@ class Meting
             case 'kuwo':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://www.kuwo.cn/api/www/search/searchMusicBykeyWord',
+                    'url'    => 'https://www.kuwo.cn/api/www/search/searchMusicBykeyWord',
                     'body'   => array(
                         'key'         => $keyword,
                         'pn'          => isset($option['page']) ? $option['page'] : 1,
@@ -314,7 +314,7 @@ class Meting
             case 'kugou':
                 $api = array(
                     'method' => 'POST',
-                    'url'    => 'http://m.kugou.com/app/i/getSongInfo.php',
+                    'url'    => 'https://m.kugou.com/app/i/getSongInfo.php',
                     'body'   => array(
                         'cmd'  => 'playInfo',
                         'hash' => $id,
@@ -326,7 +326,7 @@ class Meting
             case 'baidu':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://musicapi.taihe.com/v1/restserver/ting',
+                    'url'    => 'https://musicapi.taihe.com/v1/restserver/ting',
                     'body'   => array(
                         'from'     => 'qianqianmini',
                         'method'   => 'baidu.ting.song.getInfos',
@@ -342,7 +342,7 @@ class Meting
             case 'kuwo':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://www.kuwo.cn/api/www/music/musicInfo',
+                    'url'    => 'https://www.kuwo.cn/api/www/music/musicInfo',
                     'body'   => array(
                         'mid'         => $id,
                         'httpsStatus' => 1,
@@ -404,7 +404,7 @@ class Meting
             case 'kugou':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://mobilecdn.kugou.com/api/v3/album/song',
+                    'url'    => 'https://mobilecdn.kugou.com/api/v3/album/song',
                     'body'   => array(
                         'albumid'   => $id,
                         'area_code' => 1,
@@ -419,7 +419,7 @@ class Meting
             case 'baidu':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://musicapi.taihe.com/v1/restserver/ting',
+                    'url'    => 'https://musicapi.taihe.com/v1/restserver/ting',
                     'body'   => array(
                         'from'     => 'qianqianmini',
                         'method'   => 'baidu.ting.album.getAlbumInfo',
@@ -433,7 +433,7 @@ class Meting
             case 'kuwo':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://www.kuwo.cn/api/www/album/albumInfo',
+                    'url'    => 'https://www.kuwo.cn/api/www/album/albumInfo',
                     'body'   => array(
                         'albumId'     => $id,
                         'pn'          => 1,
@@ -501,7 +501,7 @@ class Meting
             case 'kugou':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://mobilecdn.kugou.com/api/v3/singer/song',
+                    'url'    => 'https://mobilecdn.kugou.com/api/v3/singer/song',
                     'body'   => array(
                         'singerid'  => $id,
                         'area_code' => 1,
@@ -516,7 +516,7 @@ class Meting
             case 'baidu':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://musicapi.taihe.com/v1/restserver/ting',
+                    'url'    => 'https://musicapi.taihe.com/v1/restserver/ting',
                     'body'   => array(
                         'from'     => 'qianqianmini',
                         'method'   => 'baidu.ting.artist.getSongList',
@@ -533,7 +533,7 @@ class Meting
             case 'kuwo':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://www.kuwo.cn/api/www/artist/artistMusic',
+                    'url'    => 'https://www.kuwo.cn/api/www/artist/artistMusic',
                     'body'   => array(
                         'artistid'    => $id,
                         'pn'          => 1,
@@ -653,7 +653,7 @@ class Meting
             case 'kugou':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://mobilecdn.kugou.com/api/v3/special/song',
+                    'url'    => 'https://mobilecdn.kugou.com/api/v3/special/song',
                     'body'   => array(
                         'specialid' => $id,
                         'area_code' => 1,
@@ -668,7 +668,7 @@ class Meting
             case 'baidu':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://musicapi.taihe.com/v1/restserver/ting',
+                    'url'    => 'https://musicapi.taihe.com/v1/restserver/ting',
                     'body'   => array(
                         'from'     => 'qianqianmini',
                         'method'   => 'baidu.ting.diy.gedanInfo',
@@ -682,7 +682,7 @@ class Meting
             case 'kuwo':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://www.kuwo.cn/api/www/playlist/playListInfo',
+                    'url'    => 'https://www.kuwo.cn/api/www/playlist/playListInfo',
                     'body'   => array(
                         'pid'         => $id,
                         'pn'          => 1,
@@ -743,7 +743,7 @@ class Meting
             case 'kugou':
                 $api = array(
                     'method' => 'POST',
-                    'url'    => 'http://media.store.kugou.com/v1/get_res_privilege',
+                    'url'    => 'https://media.store.kugou.com/v1/get_res_privilege',
                     'body'   => json_encode(
                         array(
                             'relate'    => 1,
@@ -767,7 +767,7 @@ class Meting
             case 'baidu':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://musicapi.taihe.com/v1/restserver/ting',
+                    'url'    => 'https://musicapi.taihe.com/v1/restserver/ting',
                     'body'   => array(
                         'from'     => 'qianqianmini',
                         'method'   => 'baidu.ting.song.getInfos',
@@ -783,7 +783,7 @@ class Meting
             case 'kuwo':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://www.kuwo.cn/url',
+                    'url'    => 'https://www.kuwo.cn/url',
                     'body'   => array(
                         'rid'         => $id,
                         'response'    => 'url',
@@ -873,7 +873,7 @@ class Meting
             case 'kugou':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://krcs.kugou.com/search',
+                    'url'    => 'https://krcs.kugou.com/search',
                     'body'   => array(
                         'keyword'  => '%20-%20',
                         'ver'      => 1,
@@ -888,7 +888,7 @@ class Meting
             case 'baidu':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://musicapi.taihe.com/v1/restserver/ting',
+                    'url'    => 'https://musicapi.taihe.com/v1/restserver/ting',
                     'body'   => array(
                         'from'     => 'qianqianmini',
                         'method'   => 'baidu.ting.song.lry',
@@ -903,7 +903,7 @@ class Meting
             case 'kuwo':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://m.kuwo.cn/newh5/singles/songinfoandlrc',
+                    'url'    => 'https://m.kuwo.cn/newh5/singles/songinfoandlrc',
                     'body'   => array(
                         'musicId'     => $id,
                         'httpsStatus' => 1,
@@ -976,7 +976,7 @@ class Meting
                 );
             case 'tencent':
                 return array(
-                    'Referer'         => 'http://y.qq.com',
+                    'Referer'         => 'https://y.qq.com',
                     'Cookie'          => 'pgv_pvi=22038528; pgv_si=s3156287488; pgv_pvid=5535248600; yplayer_open=1; ts_last=y.qq.com/portal/player.html; ts_uid=4847550686; yq_index=0; qqmusic_fromtag=66; player_exist=1',
                     'User-Agent'      => 'QQ%E9%9F%B3%E4%B9%90/54409 CFNetwork/901.1 Darwin/17.6.0 (x86_64)',
                     'Accept'          => '*/*',
@@ -1010,7 +1010,7 @@ class Meting
                     'Cookie'          => 'Hm_lvt_cdb524f42f0ce19b169a8071123a4797=1623339177,1623339183; _ga=GA1.2.1195980605.1579367081; Hm_lpvt_cdb524f42f0ce19b169a8071123a4797=1623339982; kw_token=3E7JFQ7MRPL; _gid=GA1.2.747985028.1623339179; _gat=1',
                     'csrf'            => '3E7JFQ7MRPL',
                     'Host'            => 'www.kuwo.cn',
-                    'Referer'         => 'http://www.kuwo.cn/',
+                    'Referer'         => 'https://www.kuwo.cn/',
                     'User-Agent'      => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36',
                 );
         }
@@ -1322,7 +1322,7 @@ class Meting
             if ($vo['info']['bitrate'] <= $this->temp['br'] && $vo['info']['bitrate'] > $max) {
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'http://trackercdn.kugou.com/i/v2/',
+                    'url'    => 'https://trackercdn.kugou.com/i/v2/',
                     'body'   => array(
                         'hash'     => $vo['hash'],
                         'key'      => md5($vo['hash'] . 'kgcloudv2'),
@@ -1478,7 +1478,7 @@ class Meting
         $result = json_decode($result, true);
         $api = array(
             'method' => 'GET',
-            'url'    => 'http://lyrics.kugou.com/download',
+            'url'    => 'https://lyrics.kugou.com/download',
             'body'   => array(
                 'charset'   => 'utf8',
                 'accesskey' => $result['candidates'][0]['accesskey'],
