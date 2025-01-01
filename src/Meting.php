@@ -12,7 +12,7 @@
 
 namespace Metowolf;
 
-include 'qrcdecoder.php';
+include __DIR__ . '/qrcdecoder.php';
 
 class Meting
 {
