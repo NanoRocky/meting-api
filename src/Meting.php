@@ -12,6 +12,8 @@
 
 namespace Metowolf;
 
+include 'qrcdecoder.php';
+
 class Meting
 {
     const VERSION = '1.5.11';
@@ -852,6 +854,50 @@ class Meting
                         'g_tk'    => '5381',
                     ),
                     'decode' => 'tencent_lyric',
+                );
+                break;
+
+            case 'tencentnew':
+                $api = array(
+                    'method' => 'POST',
+                    'url'    => 'https://u6.y.qq.com/cgi-bin/musicu.fcg',
+                    'headers' => array(
+                        "Content-Type" => "application/json",
+                        "Host" => "u.y.qq.com",
+                    ),
+                    'body' => [
+                        'comm' => [
+                            'cv' => 4747474,
+                            'ct' => 24,
+                            'format' => 'json',
+                            'inCharset' => 'utf-8',
+                            'outCharset' => 'utf-8',
+                            'notice' => 0,
+                            'platform' => 'yqq.json',
+                            'needNewCode' => 1,
+                            'uin' => 0,
+                            'g_tk' => 1502777370,
+                        ],
+                        'req_0' => [
+                            'module' => 'music.musichallSong.PlayLyricInfo',
+                            'method' => 'GetPlayLyricInfo',
+                            'param' => [
+                                'songmid' => $id,
+                                'crypt' => 1,
+                                'qrc' => 1,
+                                'ct' => 19,
+                                'cv' => 1873,
+                                'lrc_t' => 0,
+                                'qrc_t' => 0,
+                                'roma' => 1,
+                                'roma_t' => 0,
+                                'type' => -1,
+                                'trans' => 1,
+                                'trans_t' => 0,
+                            ],
+                        ],
+                    ],
+                    'decode' => 'decodeQrc',
                 );
                 break;
 
