@@ -64,7 +64,7 @@
         await initPlayer();
     });
 </script>
-    
+
 <body>
     <div id="aplayer"></div>
     <h1>Meting-API</h1>
@@ -87,7 +87,11 @@
     &nbsp;&nbsp;&nbsp;id: 类型ID（封面ID/单曲ID/歌单ID）<br />
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;（id 必须指定，在使用其它功能 比如搜索 时，请将 id 指定为 0 ）<br />
     <br />
+    &nbsp;&nbsp;&nbsp;picsize: 歌曲封面大小（仅使用封面功能时 可选 携带，指定纯数字）<br />
+    <br />
     &nbsp;&nbsp;&nbsp;keyword: 搜索关键词（仅使用搜索功能时携带）<br />
+    <br />
+    &nbsp;&nbsp;&nbsp;br: 歌曲最高音质（仅使用单曲功能时 可选 携带，目前仅网易云有效，指定纯数字，如 1411 即 1411kbps ）<br />
     <br />
     &nbsp;&nbsp;&nbsp;yrc: 网易云音乐逐字歌词解析开关，开启后优先解析逐字歌词。<br />
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False 禁用(默认)<br />

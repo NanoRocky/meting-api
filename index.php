@@ -20,7 +20,9 @@ if (!isset($_GET['type']) || !isset($_GET['id'])) {
 $server = filter_input(INPUT_GET, 'server', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'netease';
 $type = filter_input(INPUT_GET, 'type', FILTER_SANITIZE_SPECIAL_CHARS);
 $id = filter_input(INPUT_GET, 'id', FILTER_SANITIZE_SPECIAL_CHARS);
+$br = filter_input(INPUT_GET, 'br', FILTER_SANITIZE_SPECIAL_CHARS) ?: '2147483';
 $yrc = filter_input(INPUT_GET, 'yrc', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'false';
+$picsize = filter_input(INPUT_GET, 'picsize', FILTER_SANITIZE_SPECIAL_CHARS) ?: null;
 
 
 if (AUTH) {
@@ -90,7 +92,7 @@ if ($type == 'playlist') {
         if ($yrc == 'true') {
             $lrc_url .= '&yrc=true';
         }
-    
+
         $playlist[] = array(
             'name'   => $song->name,
             'artist' => implode('/', $song->artist),
@@ -99,7 +101,7 @@ if ($type == 'playlist') {
             'lrc'    => $lrc_url
         );
     }
-    
+
     $playlist = json_encode($playlist);
 
     if (CACHE) {
@@ -173,7 +175,7 @@ if ($type == 'playlist') {
     }
 
     if (!$need_song) {
-        $data = song2data($api, null, $type, $id, $yrc);
+        $data = song2data($api, null, $type, $id, $yrc, $picsize, $br);
     } else {
         if (!isset($song)) $song = $api->song($id);
         if ($song == '[]') {
@@ -183,7 +185,7 @@ if ($type == 'playlist') {
         if (APCU_CACHE) {
             apcu_store($apcu_song_id_key, $song, $apcu_time);
         }
-        $data = song2data($api, json_decode($song)[0], $type, $id, $yrc);
+        $data = song2data($api, json_decode($song)[0], $type, $id, $yrc, $picsize, $br);
     }
 
     if (APCU_CACHE) {
@@ -203,7 +205,7 @@ function auth($name)
     return hash_hmac('sha1', $name, AUTH_SECRET);
 }
 
-function song2data($api, $song, $type, $id, $yrc)
+function song2data($api, $song, $type, $id, $yrc, $picsize, $br)
 {
     $data = '';
     switch ($type) {
@@ -216,7 +218,7 @@ function song2data($api, $song, $type, $id, $yrc)
             break;
 
         case 'url':
-            $m_url = json_decode($api->url($id, 320))->url;
+            $m_url = json_decode($api->url($id, $br))->url;
             if ($m_url == '') break;
             // url format
             if ($api->server == 'netease') {
@@ -227,7 +229,7 @@ function song2data($api, $song, $type, $id, $yrc)
             break;
 
         case 'pic':
-            $data = json_decode($api->pic($id, 90))->url;
+            $data = json_decode($api->pic($id, $picsize))->url;
             break;
 
         case 'lrc':
@@ -268,7 +270,7 @@ function song2data($api, $song, $type, $id, $yrc)
                 if ($yrc == 'true') {
                     $lrc_url .= '&yrc=true';
                 }
-            
+
                 $data = json_encode(array(array(
                     'name'   => $song->name,
                     'artist' => implode('/', $song->artist),
@@ -277,7 +279,7 @@ function song2data($api, $song, $type, $id, $yrc)
                     'lrc'    => $lrc_url
                 )));
                 break;
-            
+
     }
     if ($data == '') exit;
     return $data;
