@@ -697,7 +697,7 @@ class Meting
         return $this->exec($api);
     }
 
-    public function url($id, $br = 320)
+    public function url($id, $br = 2147483)
     {
         switch ($this->server) {
             case 'netease':
@@ -706,7 +706,7 @@ class Meting
                     'url'    => 'https://music.163.com/api/song/enhance/player/url',
                     'body'   => array(
                         'ids' => array($id),
-                        'br'  => $br * 999999,
+                        'br'  => $br * 1000,
                     ),
                     'encode' => 'netease_AESCBC',
                     'decode' => 'netease_url',
@@ -916,16 +916,27 @@ class Meting
         return $this->exec($api);
     }
 
-    public function pic($id, $size = 300)
+    public function pic($id, $size)
     {
         switch ($this->server) {
             case 'netease':
-                $url = 'https://p3.music.126.net/' . $this->netease_encryptId($id) . '/' . $id . '.jpg?param=';
+                if (isset($size) && !empty($size)) {
+                    $url = 'https://p3.music.126.net/' . $this->netease_encryptId($id) . '/' . $id . '.jpg?param=' . $size . 'x' . $size;
+                } else {
+                    $url = 'https://p3.music.126.net/' . $this->netease_encryptId($id) . '/' . $id . '.jpg';
+                };
                 break;
             case 'tencent':
-                $url = 'https://y.gtimg.cn/music/photo_new/T002R' . $size . 'x' . $size . 'M000' . $id . '.jpg?max_age=2592000';
+                if (isset($size) && !empty($size)) {
+                    $url = 'https://y.gtimg.cn/music/photo_new/T002R' . $size . 'x' . $size . 'M000' . $id . '.jpg';
+                } else {
+                    $url = 'https://y.gtimg.cn/music/photo_new/T002M000' . $id . '.jpg';
+                };
                 break;
             case 'xiami':
+                if (!isset($size) || empty($size)) {
+                    $size = 300;
+                };
                 $format = $this->format;
                 $data = $this->format(false)->song($id);
                 $this->format = $format;
@@ -934,6 +945,9 @@ class Meting
                 $url = str_replace('http:', 'https:', $url) . '@1e_1c_100Q_' . $size . 'h_' . $size . 'w';
                 break;
             case 'kugou':
+                if (!isset($size) || empty($size)) {
+                    $size = 300;
+                };
                 $format = $this->format;
                 $data = $this->format(false)->song($id);
                 $this->format = $format;
@@ -942,6 +956,9 @@ class Meting
                 $url = str_replace('{size}', '400', $url);
                 break;
             case 'baidu':
+                if (!isset($size) || empty($size)) {
+                    $size = 300;
+                };
                 $format = $this->format;
                 $data = $this->format(false)->song($id);
                 $this->format = $format;
@@ -949,6 +966,9 @@ class Meting
                 $url = isset($data['songinfo']['pic_radio']) ? $data['songinfo']['pic_radio'] : $data['songinfo']['pic_small'];
                 break;
             case 'kuwo':
+                if (!isset($size) || empty($size)) {
+                    $size = 300;
+                };
                 $format = $this->format;
                 $data = $this->format(false)->song($id);
                 $this->format = $format;
