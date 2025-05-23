@@ -12,6 +12,9 @@
 
 namespace Metowolf;
 
+include __DIR__ . '/QrcDecode.php';
+use QrcDecode\Decoder;
+
 class Meting
 {
     const VERSION = '1.5.11';
@@ -845,12 +848,34 @@ class Meting
 
             case 'tencent':
                 $api = array(
-                    'method' => 'GET',
-                    'url'    => 'https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg',
-                    'body'   => array(
-                        'songmid' => $id,
-                        'g_tk'    => '5381',
-                    ),
+                    'method' => 'POST',
+                    'url'    => 'https://u.y.qq.com/cgi-bin/musicu.fcg',
+                    'body'   => json_encode(array(
+                        'comm' => array(
+                          '_channelid'=>'0',
+                          '_os_version'=> '6.2.9200-2',
+                          'authst'=> '',
+                          'ct'=> '19',
+                          'cv'=> '1873',
+                          'patch'=> '118',
+                          'psrf_access_token_expiresAt'=> 0,
+                          'psrf_qqaccess_token'=> '',
+                          'psrf_qqopenid'=> '',
+                          'psrf_qqunionid'=> '',
+                          'tmeAppID'=> 'qqmusic',
+                          'tmeLoginType'=> 2,
+                          'uin'=> '0',
+                          'wid'=> '0',
+                        ),
+                        'req_1'=> array(
+                          'method'=> 'GetPlayLyricInfo',
+                          'module'=> 'music.musichallSong.PlayLyricInfo',
+                          'param'=> array(
+                            'songMID'=> $id,
+                            'qrc' => $this->yrc ? 1 : 0,
+                          ),
+                        )
+                    )),
                     'decode' => 'tencent_lyric',
                 );
                 break;
@@ -1450,14 +1475,14 @@ class Meting
 
     private function tencent_lyric($result)
     {
-        $result = substr($result, 18, -1);
         $result = json_decode($result, true);
-        $data = array(
-            'lyric'  => isset($result['lyric']) ? base64_decode($result['lyric']) : '',
-            'tlyric' => isset($result['trans']) ? base64_decode($result['trans']) : '',
-        );
-
-        return json_encode($data, JSON_UNESCAPED_UNICODE);
+        $lrc = $result['req_1']['data']['lyric'];
+        if ($result['req_1']['data']['qrc'] == 0) {
+            return json_encode(array('lyric'  => base64_decode($lrc),
+            'tlyric' =>'',), JSON_UNESCAPED_UNICODE);
+        }
+        $decoder = new Decoder();
+        return json_encode(array('lyric'  => $decoder->decode($lrc),'tlyric' =>''), JSON_UNESCAPED_UNICODE);
     }
 
     private function xiami_lyric($result)
