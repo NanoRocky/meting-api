@@ -7,6 +7,7 @@
     <title>Meting-API</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aplayer/1.10.1/APlayer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fetch-jsonp/build/fetch-jsonp.min.js"></script>
 </head>
 
 <script>
@@ -91,12 +92,17 @@
     <br />
     &nbsp;&nbsp;&nbsp;keyword: 搜索关键词（仅使用搜索功能时携带）<br />
     <br />
-    &nbsp;&nbsp;&nbsp;br: 歌曲最高音质（仅使用单曲功能时 可选 携带，目前仅网易云有效，指定纯数字，如 1411 即 1411kbps ）<br />
+    &nbsp;&nbsp;&nbsp;br: 歌曲最高音质（仅使用单曲功能时 可选 携带，指定纯数字，如 1411 即 1411kbps ）<br />
     <br />
-    &nbsp;&nbsp;&nbsp;yrc: 网易云音乐逐字歌词解析开关，开启后优先解析逐字歌词。<br />
+    &nbsp;&nbsp;&nbsp;dwrc: 【DynamicWordRC】逐字歌词解析开关，开启后优先解析逐字歌词。<br />
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False 禁用(默认)<br />
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True 启用<br />
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Open 备用启用模式（该模式在没有逐字歌词时不会返回逐行歌词，而是返回空）<br />
+    <br />
+    &nbsp;&nbsp;&nbsp;trlrc: 【TranslateLRC】翻译歌词显示开关（仅逐行歌词支持）。<br />
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;False 禁用(默认)<br />
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;True 启用<br />
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only 仅输出翻译歌词<br />
     <br /><br />
     GitHub：<a href="https://github.com/injahow/meting-api" target="_blank">meting-api</a>，此API基于 <a href="https://github.com/metowolf/Meting" target="_blank">Meting</a> 构建。当前为<a href="https://github.com/NanoRocky/meting-api" target="_blank">酪灰修改版本</a>。<br /><br /><br />
     例如：<a href="<?php echo API_URI ?>?server=netease&type=url&id=416892104" target="_blank"><?php echo API_URI ?>?server=netease&type=url&id=416892104</a><br />

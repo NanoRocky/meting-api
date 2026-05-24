@@ -22,7 +22,7 @@ class Meting
 
     public $raw;
     public $data;
-    public $info;
+    public $info = false;
     public $error;
     public $status;
 
@@ -142,7 +142,8 @@ class Meting
                 break;
             }
         }
-        curl_close($curl);
+        /* delete before php 8.0 */
+        // curl_close($curl);
 
         return $this;
     }
@@ -183,6 +184,7 @@ class Meting
                     'url'    => 'https://music.163.com/api/cloudsearch/pc',
                     'body'   => array(
                         's'      => $keyword,
+                        /* TODO: 多功能搜索实现 */
                         'type'   => isset($option['type']) ? $option['type'] : 1,
                         'limit'  => isset($option['limit']) ? $option['limit'] : 50,
                         'total'  => 'true',
@@ -194,19 +196,27 @@ class Meting
                 break;
             case 'tencent':
                 $api = array(
-                    'method' => 'GET',
-                    'url'    => 'https://c.y.qq.com/soso/fcgi-bin/client_search_cp',
-                    'body'   => array(
-                        'format'   => 'json',
-                        'p'        => isset($option['page']) ? $option['page'] : 1,
-                        'n'        => isset($option['limit']) ? $option['limit'] : 50,
-                        'w'        => $keyword,
-                        'aggr'     => 1,
-                        'lossless' => 1,
-                        'cr'       => 1,
-                        'new_json' => 1,
-                    ),
-                    'format' => 'data.song.list',
+                    'method' => 'POST',
+                    'url'    => 'https://u.y.qq.com/cgi-bin/musicu.fcg',
+                    'body'   => json_encode(array(
+                        'comm' => array(
+                            'ct'   => '19',
+                            'cv'   => '1859',
+                            'uin'  => '0',
+                        ),
+                        'req' => array(
+                            'method' => 'DoSearchForQQMusicDesktop',
+                            'module' => 'music.search.SearchCgiService',
+                            'param'  => array(
+                                'grp'          => 1,
+                                'num_per_page' => isset($option['limit']) ? (int)$option['limit'] : 50,
+                                'page_num'     => isset($option['page']) ? (int)$option['page'] : 1,
+                                'query'        => $keyword,
+                                'search_type'  => 0,
+                            ),
+                        ),
+                    )),
+                    'format' => 'req.data.body.song.list',
                 );
                 break;
         }
@@ -230,15 +240,192 @@ class Meting
                 break;
             case 'tencent':
                 $api = array(
+                    'method' => 'POST',
+                    'url'    => 'https://u.y.qq.com/cgi-bin/musicu.fcg',
+                    'body'   => json_encode(array(
+                        'comm' => array(
+                            'ct' => '19',
+                            'cv' => '1873',
+                            'uin' => '0',
+                        ),
+                        'req_1' => array(
+                            'method' => 'get_song_detail_yqq',
+                            'module' => 'music.pf_song_detail_svr',
+                            'param' => array(
+                                'song_type' => 0,
+                                'song_mid' => $id,
+                                'song_id' => ''
+                            )
+                        )
+                    )),
+                    'format' => 'data',
+                );
+                break;
+        }
+
+        return $this->exec($api);
+    }
+
+    public function mv($id, $info = false)
+    {
+        switch ($this->server) {
+            case 'netease':
+                $api = array(
                     'method' => 'GET',
-                    'url'    => 'https://c.y.qq.com/v8/fcg-bin/fcg_play_single_song.fcg',
+                    'url'    => 'https://music.163.com/api/mv/detail',
                     'body'   => array(
-                        'songmid'  => $id,
+                        'id'  => $id,
+                    ),
+                );
+                $raw_data = $this->exec($api);
+
+                if (!$raw_data) {
+                    return $raw_data;
+                }
+
+                $decoded_data = json_decode($raw_data, true);
+                if (!isset($decoded_data['code']) || $decoded_data['code'] !== 200 || !isset($decoded_data['data'])) {
+                    return $raw_data;
+                }
+
+                $mv_data = $decoded_data['data'];
+
+                if (empty($mv_data['brs'])) {
+                    return $info ? json_encode(array()) : null;
+                }
+
+                $brs = $mv_data['brs'];
+                krsort($brs, SORT_NUMERIC);
+                $best_url = reset($brs);
+
+                if (!$info) {
+                    return $best_url;
+                }
+
+                $result = array(
+                    'name'       => $mv_data['name'],
+                    'artistName' => $mv_data['artistName'],
+                    'cover'      => $mv_data['cover'],
+                    'url'        => $best_url,
+                );
+                return json_encode($result);
+
+            case 'tencent':
+                $api = array(
+                    'method' => 'POST',
+                    'url'    => 'https://u.y.qq.com/cgi-bin/musicu.fcg',
+                    'body'   => json_encode(array(
+                        'comm' => array(
+                            'ct' => 6,
+                            'cv' => 0,
+                            'g_tk' => 1646675364,
+                            'uin' => 0,
+                            'format' => 'json',
+                            'platform' => 'yqq'
+                        ),
+                        'mvInfo' => array(
+                            'module' => 'music.video.VideoData',
+                            'method' => 'get_video_info_batch',
+                            'param' => array(
+                                'vidlist' => array($id),
+                                'required' => array('vid', 'type', 'sid', 'cover_pic', 'duration', 'singers', 'name', 'desc', 'playcnt', 'pubdate')
+                            )
+                        ),
+                        'mvUrl' => array(
+                            'module' => 'music.stream.MvUrlProxy',
+                            'method' => 'GetMvUrls',
+                            'param' => array(
+                                'vids' => array($id),
+                                'request_type' => 10003,
+                                'addrtype' => 3,
+                                'format' => 264,
+                                'maxFiletype' => 60
+                            )
+                        )
+                    )),
+                );
+                $raw_data = $this->exec($api);
+                if (!$raw_data) return $raw_data;
+                $decoded_data = json_decode($raw_data, true);
+
+                $mv_urls = $decoded_data['mvUrl']['data'][$id]['mp4'] ?? [];
+                if (empty($mv_urls)) return $info ? json_encode(array()) : null;
+
+                $best_url = '';
+                foreach (array_reverse($mv_urls) as $vo) {
+                    if (!empty($vo['freeflow_url']) && !empty($vo['freeflow_url'][0])) {
+                        $best_url = $vo['freeflow_url'][0];
+                        break;
+                    }
+                }
+                if (empty($best_url)) return $info ? json_encode(array()) : null;
+                if (!$info) return $best_url;
+
+                $mv_info = $decoded_data['mvInfo']['data'][$id] ?? [];
+                $artists = array();
+                if (isset($mv_info['singers'])) {
+                    foreach ($mv_info['singers'] as $s) {
+                        $artists[] = $s['name'];
+                    }
+                }
+                $result = array(
+                    'name'       => $mv_info['name'] ?? '',
+                    'artistName' => implode(', ', $artists),
+                    'cover'      => $mv_info['cover_pic'] ?? '',
+                    'url'        => $best_url,
+                );
+                return json_encode($result);
+        }
+        return null;
+    }
+
+    public function comment($id, $limit = 20, $offset = 0)
+    {
+        switch ($this->server) {
+            case 'netease':
+                $api = array(
+                    'method' => 'GET',
+                    'url'    => 'https://music.163.com/api/v1/resource/comments/R_SO_4_' . $id,
+                    'body'   => array(
+                        'limit'  => $limit,
+                        'offset' => $offset,
+                        'format' => 'json',
+                    ),
+                );
+                break;
+            case 'tencent':
+                $api = array(
+                    'method' => 'GET',
+                    'url'    => 'https://c.y.qq.com/base/fcgi-bin/fcg_global_comment_h5.fcg',
+                    'body'   => array(
+                        'cid'  => $id,
                         'platform' => 'yqq',
                         'format'   => 'json',
                     ),
-                    'format' => 'data',
+                    // 'format' => 'data',
                 );
+                break;
+        }
+
+        return $this->exec($api);
+    }
+
+    public function mvcomment($id, $limit = 20, $offset = 0)
+    {
+        switch ($this->server) {
+            case 'netease':
+                $api = array(
+                    'method' => 'GET',
+                    'url'    => 'https://music.163.com/api/v1/resource/comments/R_MV_5_' . $id,
+                    'body'   => array(
+                        'limit'  => $limit,
+                        'offset' => $offset,
+                        'format' => 'json',
+                    ),
+                );
+                break;
+            case 'tencent':
+                $api = array();
                 break;
         }
 
@@ -267,14 +454,19 @@ class Meting
             case 'tencent':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'https://c.y.qq.com/v8/fcg-bin/fcg_v8_album_detail_cp.fcg',
+                    'url'    => 'https://i.y.qq.com/v8/fcg-bin/fcg_v8_album_info_cp.fcg',
                     'body'   => array(
-                        'albummid' => $id,
-                        'platform' => 'mac',
-                        'format'   => 'json',
-                        'newsong'  => 1,
+                        'albummid'     => $id,
+                        'g_tk'         => 5381,
+                        'uin'          => 0,
+                        'format'       => 'json',
+                        'inCharset'    => 'utf-8',
+                        'outCharset'   => 'utf-8',
+                        'notice'       => 0,
+                        'platform'     => 'h5',
+                        'needNewCode'  => 1,
                     ),
-                    'format' => 'data.getSongInfo',
+                    'format' => 'data.list',
                 );
                 break;
         }
@@ -301,17 +493,25 @@ class Meting
                 break;
             case 'tencent':
                 $api = array(
-                    'method' => 'GET',
-                    'url'    => 'https://c.y.qq.com/v8/fcg-bin/fcg_v8_singer_track_cp.fcg',
-                    'body'   => array(
-                        'singermid' => $id,
-                        'begin'     => 0,
-                        'num'       => $limit,
-                        'order'     => 'listen',
-                        'platform'  => 'mac',
-                        'newsong'   => 1,
-                    ),
-                    'format' => 'data.list',
+                    'method' => 'POST',
+                    'url'    => 'https://u.y.qq.com/cgi-bin/musicu.fcg',
+                    'body'   => json_encode(array(
+                        'comm' => array(
+                            'ct'   => 24,
+                            'cv'   => 0,
+                        ),
+                        'req' => array(
+                            'module' => 'music.web_singer_info_svr',
+                            'method' => 'get_singer_detail_info',
+                            'param'  => array(
+                                'sort'      => 5,
+                                'singermid' => $id,
+                                'sin'       => 0,
+                                'num'       => (int)$limit,
+                            ),
+                        ),
+                    )),
+                    'format' => 'req.data.songlist',
                 );
                 break;
         }
@@ -336,6 +536,9 @@ class Meting
                     "encode" => "netease_AESCBC",
                 ];
                 $playlistData = json_decode($this->exec($api), true);
+                if (!isset($playlistData["playlist"]["trackIds"])) {
+                    return json_encode([]);
+                }
                 $trackIds = $playlistData["playlist"]["trackIds"];
                 $allTracks = [];
                 $idBatches = array_chunk(array_column($trackIds, "id"), 500);
@@ -367,10 +570,11 @@ class Meting
                         "id" => $data["id"],
                         "name" => $data["name"],
                         "artist" => [],
-                        "album" => $data["al"]["name"],
-                        "pic_id" => isset($data["al"]["pic_str"])
-                            ? $data["al"]["pic_str"]
-                            : $data["al"]["pic"],
+                        "album" => isset($data["al"]["name"]) ? $data["al"]["name"] : $data["album"],
+                        // "pic_id" => isset($data["al"]["pic_str"])
+                        //     ? $data["al"]["pic_str"]
+                        //     : $data["al"]["pic"],
+                        "pic_id" => $data["al"]["pic_str"] ?? $data["al"]["pic"] ?? $data["pic_id"],
                         "url_id" => $data["id"],
                         "lyric_id" => $data["id"],
                         "source" => "netease",
@@ -392,14 +596,25 @@ class Meting
             case 'tencent':
                 $api = array(
                     'method' => 'GET',
-                    'url'    => 'https://c.y.qq.com/v8/fcg-bin/fcg_v8_playlist_cp.fcg',
+                    'url'    => 'https://i.y.qq.com/qzone-music/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg',
                     'body'   => array(
-                        'id'       => $id,
-                        'format'   => 'json',
-                        'newsong'  => 1,
-                        'platform' => 'jqspaframe.json',
+                        'disstid'      => $id,
+                        'type'         => 1,
+                        'json'         => 1,
+                        'utf8'         => 1,
+                        'onlysong'     => 0,
+                        'nosign'       => 1,
+                        'g_tk'         => 5381,
+                        'loginUin'     => 0,
+                        'hostUin'      => 0,
+                        'format'       => 'json',
+                        'inCharset'    => 'GB2312',
+                        'outCharset'   => 'utf-8',
+                        'notice'       => 0,
+                        'platform'     => 'yqq',
+                        'needNewCode'  => 0,
                     ),
-                    'format' => 'data.cdlist.0.songlist',
+                    'format' => 'cdlist.0.songlist',
                 );
                 break;
         }
@@ -424,13 +639,24 @@ class Meting
                 break;
             case 'tencent':
                 $api = array(
-                    'method' => 'GET',
-                    'url'    => 'https://c.y.qq.com/v8/fcg-bin/fcg_play_single_song.fcg',
-                    'body'   => array(
-                        'songmid'  => $id,
-                        'platform' => 'yqq',
-                        'format'   => 'json',
-                    ),
+                    'method' => 'POST',
+                    'url'    => 'https://u.y.qq.com/cgi-bin/musicu.fcg',
+                    'body'   => json_encode(array(
+                        'comm' => array(
+                            'ct' => '19',
+                            'cv' => '1873',
+                            'uin' => '0',
+                        ),
+                        'req_1' => array(
+                            'method' => 'get_song_detail_yqq',
+                            'module' => 'music.pf_song_detail_svr',
+                            'param' => array(
+                                'song_type' => 0,
+                                'song_mid' => $id,
+                                'song_id' => ''
+                            )
+                        )
+                    )),
                     'decode' => 'tencent_url',
                 );
                 break;
@@ -486,49 +712,37 @@ class Meting
                 // 返回最终处理后的结果
                 return $decoded_result;
             case 'tencent':
-                if ($this->dwrc) {
-                    $api = array(
-                        'method' => 'POST',
-                        'url'    => 'https://u6.y.qq.com/cgi-bin/musicu.fcg',
-                        'body'   => json_encode(array(
-                            'comm' => array(
-                                '_channelid' => '0',
-                                '_os_version' => '6.2.9200-2',
-                                'authst' => '',
-                                'ct' => '19',
-                                'cv' => '1873',
-                                'patch' => '118',
-                                'psrf_access_token_expiresAt' => 0,
-                                'psrf_qqaccess_token' => '',
-                                'psrf_qqopenid' => '',
-                                'psrf_qqunionid' => '',
-                                'tmeAppID' => 'qqmusic',
-                                'tmeLoginType' => 2,
-                                'uin' => '0',
-                                'wid' => '0',
-                            ),
-                            'req_1' => array(
-                                'method' => 'GetPlayLyricInfo',
-                                'module' => 'music.musichallSong.PlayLyricInfo',
-                                'param' => array(
-                                    'songMID' => $id,
-                                    'qrc' => $this->dwrc ? 1 : 0,
-                                ),
-                            )
-                        )),
-                        'decode' => 'tencent_lyric_qrc',
-                    );
-                } else {
-                    $api = array(
-                        'method' => 'GET',
-                        'url'    => 'https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg',
-                        'body'   => array(
-                            'songmid' => $id,
-                            'g_tk'    => '5381',
+                $api = array(
+                    'method' => 'POST',
+                    'url'    => 'https://u6.y.qq.com/cgi-bin/musicu.fcg',
+                    'body'   => json_encode(array(
+                        'comm' => array(
+                            '_channelid' => '0',
+                            '_os_version' => '6.2.9200-2',
+                            'authst' => '',
+                            'ct' => '19',
+                            'cv' => '1873',
+                            'patch' => '118',
+                            'psrf_access_token_expiresAt' => 0,
+                            'psrf_qqaccess_token' => '',
+                            'psrf_qqopenid' => '',
+                            'psrf_qqunionid' => '',
+                            'tmeAppID' => 'qqmusic',
+                            'tmeLoginType' => 2,
+                            'uin' => '0',
+                            'wid' => '0',
                         ),
-                        'decode' => 'tencent_lyric',
-                    );
-                };
+                        'req_1' => array(
+                            'method' => 'GetPlayLyricInfo',
+                            'module' => 'music.musichallSong.PlayLyricInfo',
+                            'param' => array(
+                                'songMID' => $id,
+                                'qrc' => $this->dwrc ? 1 : 0,
+                            ),
+                        )
+                    )),
+                    'decode' => 'tencent_lyric_qrc',
+                );
                 break;
         }
         return $this->exec($api);
@@ -572,7 +786,7 @@ class Meting
                 );
             case 'tencent':
                 return array(
-                    'Referer'         => 'https://y.qq.com',
+                    'Referer'         => 'https://y.qq.com/',
                     'Cookie'          => 'pgv_pvi=22038528; pgv_si=s3156287488; pgv_pvid=5535248600; yplayer_open=1; ts_last=y.qq.com/portal/player.html; ts_uid=4847550686; yq_index=0; qqmusic_fromtag=66; player_exist=1',
                     'User-Agent'      => 'QQ%E9%9F%B3%E4%B9%90/54409 CFNetwork/901.1 Darwin/17.6.0 (x86_64)',
                     'Accept'          => '*/*',
@@ -699,7 +913,7 @@ class Meting
             $url = array(
                 'url'  => $data['data'][0]['url'],
                 'size' => $data['data'][0]['size'],
-                'br'   => $data['data'][0]['br'] / 999999,
+                'br'   => $data['data'][0]['br'] / 1000,
             );
         } else {
             $url = array(
@@ -715,6 +929,11 @@ class Meting
     private function tencent_url($result)
     {
         $data = json_decode($result, true);
+        if (isset($data['req_1']['data']['track_info'])) {
+            $track = $data['req_1']['data']['track_info'];
+        } else {
+            $track = $data['data'][0];
+        }
         $guid = mt_rand() % 10000000000;
 
         $type = array(
@@ -750,30 +969,33 @@ class Meting
         );
 
         foreach ($type as $vo) {
-            $payload['req_0']['param']['songmid'][] = $data['data'][0]['mid'];
-            $payload['req_0']['param']['filename'][] = $vo[2] . $data['data'][0]['file']['media_mid'] . '.' . $vo[3];
-            $payload['req_0']['param']['songtype'][] = $data['data'][0]['type'];
+            $payload['req_0']['param']['songmid'][] = $track['mid'];
+            $payload['req_0']['param']['filename'][] = $vo[2] . $track['file']['media_mid'] . '.' . $vo[3];
+            $payload['req_0']['param']['songtype'][] = $track['type'];
         }
 
         $api = array(
-            'method' => 'GET',
-            'url'    => 'https://u6.y.qq.com/cgi-bin/musicu.fcg',
-            'body'   => array(
-                'format'      => 'json',
-                'platform'    => 'yqq.json',
-                'needNewCode' => 0,
-                'data'        => json_encode($payload),
-            ),
+            'method' => 'POST',
+            'url'    => 'https://u.y.qq.com/cgi-bin/musicu.fcg',
+            'body'   => json_encode(array(
+                'comm' => array(
+                    'ct' => '19',
+                    'cv' => '1873',
+                    'uin' => '0',
+                ),
+                'req_0' => $payload['req_0']
+            )),
         );
         $response = json_decode($this->exec($api), true);
         $vkeys = $response['req_0']['data']['midurlinfo'];
 
         foreach ($type as $index => $vo) {
-            if ($data['data'][0]['file'][$vo[0]] && $vo[1] <= $this->temp['br']) {
+            if (isset($track['file'][$vo[0]]) && $track['file'][$vo[0]] && $vo[1] <= $this->temp['br']) {
                 if (!empty($vkeys[$index]['vkey'])) {
+                    $sip = isset($response['req_0']['data']['sip'][0]) ? $response['req_0']['data']['sip'][0] : 'https://dl.stream.qqmusic.qq.com/';
                     $url = array(
-                        'url'  => $response['req_0']['data']['sip'][0] . $vkeys[$index]['purl'],
-                        'size' => $data['data'][0]['file'][$vo[0]],
+                        'url'  => $sip . $vkeys[$index]['purl'],
+                        'size' => $track['file'][$vo[0]],
                         'br'   => $vo[1],
                     );
                     break;
@@ -827,8 +1049,8 @@ class Meting
         $lrc = $result['req_1']['data']['lyric'];
         if ($result['req_1']['data']['qrc'] == 0) {
             return json_encode(array(
-                'lyric'  => base64_decode($lrc),
-                'tlyric' => '',
+                'lyric'  => isset($result['req_1']['data']['lyric']) && $result['req_1']['data']['lyric'] ? base64_decode($result['req_1']['data']['lyric']) : '',
+                'tlyric' => isset($result['req_1']['data']['trans']) && $result['req_1']['data']['trans'] ? base64_decode($result['req_1']['data']['trans']) : '',
             ), JSON_UNESCAPED_UNICODE);
         }
         $decoder = new Decoder();
@@ -842,7 +1064,11 @@ class Meting
 
     private function tencent_lyric($result)
     {
-        $result = substr($result, 18, -1);
+        $result = trim($result);
+        if (substr($result, 0, 1) !== '{') {
+            $result = preg_replace('/^\w+\(/', '', $result);
+            $result = preg_replace('/\)$/', '', $result);
+        }
         $result = json_decode($result, true);
         $data = array(
             'lyric'  => isset($result['lyric']) ? base64_decode($result['lyric']) : '',
@@ -862,6 +1088,9 @@ class Meting
             'pic_id'   => isset($data['al']['pic_str']) ? $data['al']['pic_str'] : $data['al']['pic'],
             'url_id'   => $data['id'],
             'lyric_id' => $data['id'],
+            'duration' => $data['dt'] ?? null,
+            'mv_id'    => $data['mv'] ?? null,
+            'fee'      => $data['fee'] ?? null,
             'source'   => 'netease',
         );
         if (isset($data['al']['picUrl'])) {
@@ -880,18 +1109,34 @@ class Meting
         if (isset($data['musicData'])) {
             $data = $data['musicData'];
         }
+
+        $mid = $data['mid'] ?? ($data['songmid'] ?? '');
+        $name = $data['name'] ?? ($data['songname'] ?? '');
+
+        $album_name = $data['album']['title'] ?? ($data['album']['name'] ?? ($data['albumname'] ?? ''));
+        $album_mid = $data['album']['mid'] ?? ($data['albummid'] ?? '');
+
+        $interval = $data['interval'] ?? null;
+        $mv_id = $data['mv']['vid'] ?? ($data['vid'] ?? null);
+        $fee = $data['pay']['payplay'] ?? ($data['pay']['pay_play'] ?? null);
+
         $result = array(
-            'id'       => $data['mid'],
-            'name'     => $data['name'],
+            'id'       => $mid,
+            'name'     => $name,
             'artist'   => array(),
-            'album'    => trim($data['album']['title']),
-            'pic_id'   => $data['album']['mid'],
-            'url_id'   => $data['mid'],
-            'lyric_id' => $data['mid'],
+            'album'    => trim($album_name),
+            'pic_id'   => $album_mid,
+            'url_id'   => $mid,
+            'lyric_id' => $mid,
+            'duration' => $interval,
+            'mv_id'    => $mv_id,
+            'fee'      => $fee,
             'source'   => 'tencent',
         );
-        foreach ($data['singer'] as $vo) {
-            $result['artist'][] = $vo['name'];
+        if (isset($data['singer'])) {
+            foreach ($data['singer'] as $vo) {
+                $result['artist'][] = $vo['name'];
+            }
         }
 
         return $result;
