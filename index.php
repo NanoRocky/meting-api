@@ -48,6 +48,11 @@ if (in_array($type, ['song', 'playlist', 'search'])) {
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET');
 
+// 禁止搜索引擎索引带参数的 URL
+if (!empty($_GET)) {
+    header("X-Robots-Tag: noindex, nofollow", true);
+}
+
 // 强制 HTTPS 重定向（在定义 Only_Https 后立即添加）
 if (defined('Only_Https') && Only_Https === true) {
     // 检测是否为 HTTPS 请求（支持反向代理）
