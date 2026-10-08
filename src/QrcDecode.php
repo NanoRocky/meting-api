@@ -1,9 +1,15 @@
 <?php
 namespace QrcDecode;
 
-// source from:
-// https://github.com/luren-dc/QQMusicApi/blob/main/qqmusic_api/utils/tripledes.py
-// https://github.com/luren-dc/QQMusicApi/blob/main/qqmusic_api/utils/common.py#L86
+/**
+ * QQMusic QRC Decode
+ * by Pizero
+ *
+ * source from:
+ * https://github.com/luren-dc/QQMusicApi/blob/main/qqmusic_api/utils/tripledes.py
+ * https://github.com/luren-dc/QQMusicApi/blob/main/qqmusic_api/utils/common.py#L86
+ */
+
 class Decoder
 {
     public function __construct() {}

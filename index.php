@@ -11,6 +11,8 @@ define('AUTH', false);
 define('AUTH_SECRET', 'meting-secret');
 
 if (!isset($_GET['type']) || !isset($_GET['id'])) {
+    require_once __DIR__ . '/src/Meting.php';
+    $meting_version = \Metowolf\Meting::VERSION;
     include __DIR__ . '/public/index.php';
     exit;
 }
@@ -118,10 +120,10 @@ if (($dwrc == 'true') || ($yrc == 'true') || ($qrc == 'true')) {
     $dwrc = 'false';
 };
 
-if ($type == 'playlist') {
+if ($type == 'playlist' || $type == 'artist') {
 
     if (CACHE) {
-        $file_path = __DIR__ . '/cache/playlist/' . $server . '_' . $id . '.json';
+        $file_path = __DIR__ . '/cache/playlist/' . $server . '_' . $type . '_' . $id . '.json';
         if (file_exists($file_path)) {
             if ($_SERVER['REQUEST_TIME'] - filemtime($file_path) < CACHE_TIME) {
                 echo file_get_contents($file_path);
@@ -130,7 +132,12 @@ if ($type == 'playlist') {
         }
     }
 
-    $data = $api->playlist($id);
+    if ($type == 'playlist') {
+        $data = $api->playlist($id);
+    } else {
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+        $data = $api->artist($id, $limit);
+    }
     if ($data == '[]') {
         echo '{"error":"id 为空,无法处理"}';
         exit;
@@ -188,6 +195,7 @@ if ($type == 'playlist') {
         file_put_contents($file_path, $playlist);
     }
 
+    header('Content-Type: application/json; charset=utf-8');
     echo $playlist;
 } else if ($type == 'search') {
     if (!isset($_GET['keyword'])) {
@@ -388,10 +396,23 @@ function song2data($api, $song, $type, $id, $dwrc, $picsize, $br, $trlrc)
         case 'lrc':
             $lrc_json = $api->lyric($id);
             $lrc_data = json_decode($lrc_json);
-            if (!$lrc_data || (!isset($lrc_data->lyric) && !isset($lrc_data->tlyric))) {
+            if (!$lrc_data || (!isset($lrc_data->lyric) && !isset($lrc_data->tlyric) && !isset($lrc_data->romalrc))) {
                 $lrc = '';
+            } else if ($trlrc == 'roma' && $dwrc == 'false') {
+                if (!isset($lrc_data->romalrc) || $lrc_data->romalrc == '') {
+                    $lrc = '';
+                } else {
+                    $lrc_roma_arr = explode("\n", $lrc_data->romalrc);
+                    foreach ($lrc_roma_arr as $i => $v) {
+                        if ($v == '') continue;
+                        $line = explode(']', $v, 2);
+                        $line[1] = isset($line[1]) ? trim(preg_replace('/\s\s+/', ' ', $line[1] ?? '')) : '';
+                        $lrc_roma_arr[$i] = $line[0] . ']' . $line[1];
+                    }
+                    $lrc = implode("\n", $lrc_roma_arr);
+                }
             } else if ($trlrc == 'only' && $dwrc == 'false') {
-                if ($lrc_data->tlyric == '') {
+                if (!isset($lrc_data->tlyric) || $lrc_data->tlyric == '') {
                     $lrc = '';
                 } else {
                     $lrc_cn_arr = explode("\n", $lrc_data->tlyric);
@@ -403,7 +424,7 @@ function song2data($api, $song, $type, $id, $dwrc, $picsize, $br, $trlrc)
                     }
                     $lrc = implode("\n", $lrc_cn_arr);
                 }
-            } else if ($lrc_data->tlyric == '') {
+            } else if (!isset($lrc_data->tlyric) || $lrc_data->tlyric == '') {
                 $lrc = $lrc_data->lyric;
             } else if ($trlrc == 'true' && $dwrc == 'false') { // lyric_cn
                 $lrc_arr = explode("\n", $lrc_data->lyric);
